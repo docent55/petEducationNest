@@ -6,6 +6,9 @@ import { UserEntity } from "src/user/user.entity";
 import { UserService } from "src/user/user.service";
 import { CreateUserDto } from "src/user/dto/createUserDto";
 import { Tokens } from "./types/tokens.type";
+import { LoginUserDto } from "./dto/loginUserDto.dto";
+import { HttpException, HttpStatus } from "@nestjs/common";
+import * as bcrypt from "bcrypt";
 
 describe("AuthService", () => {
   let service: AuthService;
@@ -13,6 +16,31 @@ describe("AuthService", () => {
   const testData = {
     email: "mail@test.ru",
     id: 1,
+  };
+
+  const testUserEntity: UserEntity = {
+    email: "test@mail.ru",
+    bio: "",
+    id: 1,
+    image: "",
+    password: "123",
+    username: "testUser",
+  };
+
+  const createUserTestPayload: CreateUserDto = {
+    email: "test@mail.ru",
+    password: "11111111",
+    username: "User",
+  };
+
+  const testPareTokens: Tokens = {
+    accessToken: "q1w2e3r4",
+    refreshToken: "1qa2ws3e",
+  };
+
+  const testDataForLogin: LoginUserDto = {
+    email: "test@mail.com",
+    password: "12345678",
   };
 
   const USER_REPOSITORY_TOKEN = getRepositoryToken(UserEntity);
@@ -48,29 +76,43 @@ describe("AuthService", () => {
   });
 
   it("should be registered user", async () => {
-    const createUserTestPayload: CreateUserDto = {
-      email: "test@mail.ru",
-      password: "11111111",
-      username: "User",
-    };
-
-    const testCreatedUser: UserEntity = {
-      email: "test@mail.ru",
-      bio: "",
-      id: 1,
-      image: "",
-      password: "123",
-      username: "testUser",
-    };
-    const testPareTokens: Tokens = {
-      accessToken: "q1w2e3r4",
-      refreshToken: "1qa2ws3e",
-    };
-
-    jest.spyOn(UserService.prototype, "createUser").mockResolvedValueOnce(testCreatedUser);
+    jest.spyOn(UserService.prototype, "createUser").mockResolvedValueOnce(testUserEntity);
     jest.spyOn(service, "generateTokens").mockResolvedValue(testPareTokens);
 
     const user = await service.register(createUserTestPayload);
-    expect(user).toMatchObject({ ...testCreatedUser, ...testPareTokens });
+    expect(user).toMatchObject({ ...testUserEntity, ...testPareTokens });
+  });
+
+  it("user shouldn't be find", async () => {
+    jest.spyOn(UserService.prototype, "findOneWithEmail").mockResolvedValueOnce(null);
+
+    try {
+      await service.login(testDataForLogin);
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
+      expect((error as HttpException).getResponse()).toMatchObject({ errors: { "email or password": "is invalid" } });
+    }
+  });
+
+  it("password incorrect", async () => {
+    jest.spyOn(UserService.prototype, "findOneWithEmail").mockResolvedValueOnce(testUserEntity);
+    jest.spyOn(bcrypt, "compare").mockImplementationOnce(() => Promise.resolve(false));
+    try {
+      await service.login(testDataForLogin);
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
+      expect((error as HttpException).getResponse()).toMatchObject({ errors: { "email or password": "is invalid" } });
+    }
+  });
+
+  it("should be registered user login", async () => {
+    jest.spyOn(UserService.prototype, "findOneWithEmail").mockResolvedValueOnce(testUserEntity);
+    jest.spyOn(bcrypt, "compare").mockImplementationOnce(() => Promise.resolve(true));
+    jest.spyOn(AuthService.prototype, "generateTokens").mockResolvedValueOnce({ accessToken: "q1w2e3r4", refreshToken: "1qa2ws3e" });
+
+    const user = await service.login(createUserTestPayload);
+    expect(user).toMatchObject({ ...testUserEntity, ...testPareTokens });
   });
 });

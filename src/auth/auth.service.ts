@@ -1,9 +1,11 @@
-import { Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { UserService } from "../user/user.service";
 import { Tokens } from "./types/tokens.type";
 import { JwtPayload } from "./types/jwtPayload.type";
 import { CreateUserDto } from "src/user/dto/createUserDto";
+import { LoginUserDto } from "./dto/loginUserDto.dto";
+import * as bcrypt from "bcrypt";
 
 @Injectable()
 export class AuthService {
@@ -43,6 +45,33 @@ export class AuthService {
 
     return {
       ...newUser,
+      ...tokens,
+    };
+  }
+
+  async login(loginUserDto: LoginUserDto) {
+    const errorResponse = {
+      errors: { "email or password": "is invalid" },
+    };
+
+    const user = await this.userService.findOneWithEmail(loginUserDto.email);
+
+    if (!user) {
+      throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(loginUserDto.password, user.password);
+
+    if (!isPasswordCorrect) {
+      throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    const tokens = await this.generateTokens(user.email, user.id);
+
+    delete user.password;
+
+    return {
+      ...user,
       ...tokens,
     };
   }
