@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { UserService } from "../user/user.service";
 import { Tokens } from "./types/tokens.type";
@@ -6,6 +6,7 @@ import { JwtPayload } from "./types/jwtPayload.type";
 import { CreateUserDto } from "src/user/dto/createUserDto";
 import { LoginUserDto } from "./dto/loginUserDto.dto";
 import * as bcrypt from "bcrypt";
+import { RefreshTokenDto } from "./dto/refreshToken.dto";
 
 @Injectable()
 export class AuthService {
@@ -33,6 +34,26 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+    };
+  }
+
+  async refreshToken({ refreshToken }: RefreshTokenDto) {
+    if (!refreshToken) {
+      throw new UnauthorizedException();
+    }
+
+    const tokenPayload = await this.jwtService.verifyAsync(refreshToken);
+
+    if (!tokenPayload) {
+      throw new UnauthorizedException("Token invalid");
+    }
+
+    const user = await this.userService.findOne(tokenPayload.sub);
+    delete user.password;
+    const tokens = await this.generateTokens(user.email, user.id);
+    return {
+      ...user,
+      ...tokens,
     };
   }
 
@@ -74,5 +95,16 @@ export class AuthService {
       ...user,
       ...tokens,
     };
+  }
+
+  async validateUser(email: string, password: string) {
+    const user = await this.userService.findOneWithEmail(email);
+
+    const isPasswordValid = bcrypt.compare(password, user.password);
+
+    if (user && isPasswordValid) {
+      return user;
+    }
+    return null;
   }
 }

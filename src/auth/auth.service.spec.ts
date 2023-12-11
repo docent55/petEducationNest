@@ -115,4 +115,13 @@ describe("AuthService", () => {
     const user = await service.login(createUserTestPayload);
     expect(user).toMatchObject({ ...testUserEntity, ...testPareTokens });
   });
+
+  it("refreshToken - undefined", async () => {
+    try {
+      await service.refreshToken({});
+    } catch (error) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.UNAUTHORIZED);
+    }
+  });
 });
