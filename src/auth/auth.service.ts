@@ -76,7 +76,6 @@ export class AuthService {
     };
 
     const user = await this.userService.findOneWithEmail(loginUserDto.email);
-
     if (!user) {
       throw new HttpException(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
     }
