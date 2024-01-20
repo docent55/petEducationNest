@@ -18,14 +18,14 @@ describe("AuthService", () => {
     id: 1,
   };
 
-  const testUserEntity: UserEntity = {
+  const testUserEntity: Omit<UserEntity, "hashPassword"> = {
     email: "test@mail.ru",
     bio: "",
     id: 1,
     image: "",
     password: "123",
     username: "testUser",
-  };
+  } as UserEntity;
 
   const createUserTestPayload: CreateUserDto = {
     email: "test@mail.ru",
@@ -76,7 +76,7 @@ describe("AuthService", () => {
   });
 
   it("should be registered user", async () => {
-    jest.spyOn(UserService.prototype, "createUser").mockResolvedValueOnce(testUserEntity);
+    jest.spyOn(UserService.prototype, "createUser").mockResolvedValueOnce(testUserEntity as UserEntity);
     jest.spyOn(service, "generateTokens").mockResolvedValue(testPareTokens);
 
     const user = await service.register(createUserTestPayload);
@@ -96,7 +96,7 @@ describe("AuthService", () => {
   });
 
   it("password incorrect", async () => {
-    jest.spyOn(UserService.prototype, "findOneWithEmail").mockResolvedValueOnce(testUserEntity);
+    jest.spyOn(UserService.prototype, "findOneWithEmail").mockResolvedValueOnce(testUserEntity as UserEntity);
     jest.spyOn(bcrypt, "compare").mockImplementationOnce(() => Promise.resolve(false));
     try {
       await service.login(testDataForLogin);
@@ -108,7 +108,7 @@ describe("AuthService", () => {
   });
 
   it("should be registered user login", async () => {
-    jest.spyOn(UserService.prototype, "findOneWithEmail").mockResolvedValueOnce(testUserEntity);
+    jest.spyOn(UserService.prototype, "findOneWithEmail").mockResolvedValueOnce(testUserEntity as UserEntity);
     jest.spyOn(bcrypt, "compare").mockImplementationOnce(() => Promise.resolve(true));
     jest.spyOn(AuthService.prototype, "generateTokens").mockResolvedValueOnce({ accessToken: "q1w2e3r4", refreshToken: "1qa2ws3e" });
 

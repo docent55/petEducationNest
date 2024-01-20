@@ -46,7 +46,7 @@ describe("UserService", () => {
     };
 
     it("should findOne by email", async () => {
-      jest.spyOn(userRepository, "findOne").mockResolvedValueOnce({ email: testUserDto.email, bio: "", id: 1, image: "", password: "123", username: "testUser" });
+      jest.spyOn(userRepository, "findOne").mockResolvedValueOnce({ email: testUserDto.email, bio: "", id: 1, image: "", password: "123", username: "testUser" } as UserEntity);
 
       try {
         await service.createUser(testUserDto);
@@ -59,7 +59,7 @@ describe("UserService", () => {
 
     it("should findOne by username", async () => {
       jest.spyOn(userRepository, "findOne").mockResolvedValueOnce(null);
-      jest.spyOn(userRepository, "findOne").mockResolvedValueOnce({ email: testUserDto.email, bio: "", id: 1, image: "", password: "123", username: "testUser" });
+      jest.spyOn(userRepository, "findOne").mockResolvedValueOnce({ email: testUserDto.email, bio: "", id: 1, image: "", password: "123", username: "testUser" } as UserEntity);
       try {
         await service.createUser(testUserDto);
       } catch (error) {
